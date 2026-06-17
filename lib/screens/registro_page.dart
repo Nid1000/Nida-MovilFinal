@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../services/auth_service.dart';
 import '../services/google_auth_service.dart';
@@ -159,6 +160,7 @@ class _RegisterPageState extends State<RegisterPage> {
       final challenge = await _auth.sendRegistrationCode(email);
       setState(() {
         _challenge = challenge;
+        _verificationCode.clear();
         _emailVerified = false;
         _emailVerificationToken = '';
       });
@@ -479,23 +481,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 children: [emailField, const SizedBox(width: 8), sendButton],
               ),
 
-            if (_challenge.isNotEmpty && !_emailVerified)
-              Row(
-                children: [
-                  Expanded(
-                    child: _field(
-                      _verificationCode,
-                      'Código de 6 dígitos',
-                      validator: (_) => null,
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  ElevatedButton(
-                    onPressed: _verifyingCode ? null : _verifyCode,
-                    child: Text(_verifyingCode ? 'Validando...' : 'Verificar'),
-                  ),
-                ],
-              ),
+            _VerificationCodeBox(
+              controller: _verificationCode,
+              enabled: _challenge.isNotEmpty && !_emailVerified,
+              verifying: _verifyingCode,
+              verified: _emailVerified,
+              onVerify: _verifyCode,
+            ),
             if (_emailVerified)
               const Padding(
                 padding: EdgeInsets.only(bottom: 12),
@@ -540,6 +532,107 @@ class _RegisterPageState extends State<RegisterPage> {
                 ? 'Completa $label'
                 : null,
         decoration: InputDecoration(labelText: label),
+      ),
+    );
+  }
+}
+
+class _VerificationCodeBox extends StatelessWidget {
+  const _VerificationCodeBox({
+    required this.controller,
+    required this.enabled,
+    required this.verifying,
+    required this.verified,
+    required this.onVerify,
+  });
+
+  final TextEditingController controller;
+  final bool enabled;
+  final bool verifying;
+  final bool verified;
+  final VoidCallback onVerify;
+
+  @override
+  Widget build(BuildContext context) {
+    if (verified) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.bgSoft,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: AppColors.line),
+      ),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final compact = constraints.maxWidth < 420;
+          final field = TextFormField(
+            controller: controller,
+            enabled: enabled,
+            keyboardType: TextInputType.number,
+            textInputAction: TextInputAction.done,
+            textAlign: TextAlign.center,
+            maxLength: 6,
+            inputFormatters: [
+              FilteringTextInputFormatter.digitsOnly,
+              LengthLimitingTextInputFormatter(6),
+            ],
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 8,
+            ),
+            decoration: InputDecoration(
+              counterText: '',
+              labelText: 'Código de 6 dígitos',
+              hintText: '000000',
+              helperText: enabled
+                  ? 'Escribe el código que llegó a tu correo.'
+                  : 'Primero presiona “Enviar código”.',
+            ),
+            validator: (_) => null,
+            onFieldSubmitted: (_) {
+              if (enabled && !verifying) onVerify();
+            },
+          );
+          final button = SizedBox(
+            width: compact ? double.infinity : null,
+            child: ElevatedButton.icon(
+              onPressed: enabled && !verifying ? onVerify : null,
+              icon: verifying
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.verified_outlined, size: 18),
+              label: Text(verifying ? 'Validando...' : 'Verificar código'),
+            ),
+          );
+
+          if (compact) {
+            return Column(
+              children: [
+                field,
+                const SizedBox(height: 10),
+                button,
+              ],
+            );
+          }
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(child: field),
+              const SizedBox(width: 10),
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: button,
+              ),
+            ],
+          );
+        },
       ),
     );
   }
