@@ -176,11 +176,27 @@ class AuthService {
 
   Future<Map<String, dynamic>> verifyGoogleRegistration(String idToken) async {
     try {
-      final res = await _api.post(
-        ApiEndpoints.verifyGoogleRegistration,
+      final res = await _postFirstAvailable(
+        ApiEndpoints.verifyGoogleRegistrationCandidates,
         data: {'id_token': idToken},
       );
-      return _normalize(res.data);
+      final data = _normalize(res.data);
+      if (data.containsKey('profile') && data.containsKey('verification_token')) {
+        return data;
+      }
+
+      final user = _normalize(data['user']);
+      final email = (user['email'] ?? data['email'] ?? '').toString();
+      return {
+        'statusCode': data['statusCode'] ?? 200,
+        'message': data['message'] ?? 'Correo validado con Google',
+        'profile': {
+          'email': email,
+          'nombre': (user['nombre'] ?? '').toString(),
+          'apellido': (user['apellido'] ?? '').toString(),
+        },
+        'verification_token': data['verification_token'] ?? data['token'] ?? '',
+      };
     } on DioException catch (e) {
       throw Exception(_errorMessage(e, fallback: 'No se pudo validar Google.'));
     }

@@ -37,6 +37,10 @@ class ApiEndpoints {
 
   static const loginCandidates = ['/auth/login', '/login'];
   static const registerCandidates = ['/auth/register', '/register'];
+  static const verifyGoogleRegistrationCandidates = [
+    '/auth/register/google/verify',
+    '/auth/google',
+  ];
   static const ordersCandidates = [
     '/pedidos/mis-pedidos',
     '/pedidos',
