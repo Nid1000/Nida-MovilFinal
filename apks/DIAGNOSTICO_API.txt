@@ -1,0 +1,35 @@
+Diagnostico de conexion para el APK Delicias
+
+Fecha: 2026-06-17
+
+La app Android apunta correctamente a:
+https://api.saborcentral.com/api
+
+Pruebas realizadas desde esta computadora:
+
+- DNS:
+  api.saborcentral.com -> 216.246.112.85
+
+- HTTPS:
+  curl https://api.saborcentral.com/api/health
+  Resultado: Failed to connect to api.saborcentral.com port 443
+
+- HTTP:
+  curl http://api.saborcentral.com/api/health
+  Resultado: Failed to connect to api.saborcentral.com port 80
+
+Conclusion:
+El APK no puede iniciar sesion porque el dominio api.saborcentral.com no esta aceptando conexiones web en este momento.
+La app movil esta configurada para el dominio correcto, pero el backend/hosting debe estar activo.
+
+En cPanel revisa:
+1. Que el dominio api.saborcentral.com apunte a public_html/api.saborcentral.com/public.
+2. Que el certificado SSL de api.saborcentral.com este activo.
+3. Que el dominio abra en el navegador:
+   https://api.saborcentral.com/api/health
+4. Que Laravel tenga el archivo .env correcto.
+5. Que se haya ejecutado con PHP 8.3:
+   /opt/cpanel/ea-php83/root/usr/bin/php artisan optimize:clear
+   /opt/cpanel/ea-php83/root/usr/bin/php artisan config:cache
+
+Cuando https://api.saborcentral.com/api/health responda {"ok":true}, login y registro del APK podran funcionar.

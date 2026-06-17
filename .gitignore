@@ -1,0 +1,14 @@
+.dart_tool/
+.packages
+.pub/
+build/
+.idea/
+android/.gradle/
+android/app/debug/
+android/app/profile/
+android/app/release/
+ios/Pods/
+ios/.symlinks/
+.flutter-plugins
+.flutter-plugins-dependencies
+.fake-android-sdk/
