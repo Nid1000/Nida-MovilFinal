@@ -113,7 +113,7 @@ class _PanaderiaPageState extends State<PanaderiaPage> {
                       const SizedBox(width: 10),
                       Expanded(
                         child: DropdownButtonFormField<String>(
-                          value: _categoryId,
+                          initialValue: _categoryId,
                           decoration: const InputDecoration(
                             labelText: 'Categoria',
                           ),

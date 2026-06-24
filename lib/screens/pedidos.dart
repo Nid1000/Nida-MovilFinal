@@ -88,7 +88,7 @@ class _PedidosPageState extends State<PedidosPage> {
           Expanded(
             child: ListView.separated(
               itemCount: cart.items.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              separatorBuilder: (_, _) => const SizedBox(height: 12),
               itemBuilder: (context, i) {
                 final it = cart.items[i];
                 final name = it['name'].toString();

@@ -381,7 +381,7 @@ class _AppShellState extends State<AppShell> {
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
             itemCount: _inbox.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 10),
+            separatorBuilder: (_, _) => const SizedBox(height: 10),
             itemBuilder: (context, index) {
               final item = _inbox[index];
               return Material(

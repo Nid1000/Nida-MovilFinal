@@ -1,0 +1,13 @@
+[project]
+name = "delicias-mcp-server"
+version = "0.1.0"
+description = "FastMCP server for read-only access to the Delicias database."
+requires-python = ">=3.10"
+dependencies = [
+    "fastmcp>=2.0.0",
+    "PyMySQL>=1.1.1",
+    "python-dotenv>=1.0.1",
+]
+
+[tool.uv]
+package = false

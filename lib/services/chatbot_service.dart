@@ -25,6 +25,9 @@ class ChatbotStatus {
 }
 
 class ChatbotService {
+  static const adminPhone = '974268690';
+  static const storeAddress = 'Jr. Parra del Riego 2 do piso';
+
   final Dio _api = ApiClient().dio;
 
   Future<ChatbotStatus> health() async {
@@ -53,6 +56,11 @@ class ChatbotService {
     required String message,
     required List<Map<String, String>> history,
   }) async {
+    final localAnswer = _localAnswer(message);
+    if (localAnswer != null) {
+      return ChatbotReply(answer: localAnswer, source: 'local');
+    }
+
     try {
       final response = await _api.post(
         ApiEndpoints.chatbotAsk,
@@ -85,5 +93,58 @@ class ChatbotService {
     if (value is Map<String, dynamic>) return value;
     if (value is Map) return Map<String, dynamic>.from(value);
     return <String, dynamic>{};
+  }
+
+  String? _localAnswer(String message) {
+    final text = message.toLowerCase();
+    final asksSupport = _containsAny(text, [
+      'soporte',
+      'ayuda',
+      'reclamo',
+      'problema',
+      'queja',
+      'administrador',
+      'admin',
+      'contacto',
+      'telefono',
+      'whatsapp',
+      'numero',
+    ]);
+    final asksWork = _containsAny(text, [
+      'trabajo',
+      'trabajar',
+      'empleo',
+      'postular',
+      'vacante',
+      'cv',
+      'curriculum',
+      'contrat',
+    ]);
+    final asksAddress = _containsAny(text, [
+      'direccion',
+      'ubicacion',
+      'ubicados',
+      'local',
+      'tienda',
+      'donde estan',
+    ]);
+
+    if (asksWork) {
+      return 'Para consultas de trabajo o postulaciones, escribe directamente al administrador al $adminPhone. Tambien puedes acercarte a $storeAddress.';
+    }
+
+    if (asksSupport) {
+      return 'Para soporte, reclamos o ayuda personalizada, comunicate con el administrador al $adminPhone. Direccion: $storeAddress.';
+    }
+
+    if (asksAddress) {
+      return 'Estamos ubicados en $storeAddress. Para confirmar atencion o referencias, comunicate con el administrador al $adminPhone.';
+    }
+
+    return null;
+  }
+
+  bool _containsAny(String text, List<String> terms) {
+    return terms.any(text.contains);
   }
 }

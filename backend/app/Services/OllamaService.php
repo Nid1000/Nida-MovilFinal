@@ -37,6 +37,12 @@ class OllamaService
         return $t > 0 ? $t : 60;
     }
 
+    public function temperature(): float
+    {
+        $temperature = (float) config('services.ollama.temperature', 0.2);
+        return max(0.0, min($temperature, 1.0));
+    }
+
     public function available(): bool
     {
         if (!$this->enabled() || $this->baseUrl() === '') {
@@ -72,6 +78,11 @@ class OllamaService
                     'model' => $this->model(),
                     'prompt' => $prompt,
                     'stream' => false,
+                    'options' => [
+                        'temperature' => $this->temperature(),
+                        'top_p' => 0.85,
+                        'repeat_penalty' => 1.08,
+                    ],
                 ]);
         } catch (\Throwable) {
             return null;

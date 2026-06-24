@@ -4,6 +4,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'api_endpoints.dart';
 import 'app_config.dart';
 import 'connection_config_service.dart';
+import 'session_service.dart';
 
 class ApiClient {
   static final ApiClient _instance = ApiClient._internal();
@@ -31,8 +32,8 @@ class ApiClient {
           options.baseUrl = saved?.trim().isNotEmpty == true
               ? saved!.trim()
               : AppConfig.apiBaseUrl;
-          final token = prefs.getString('token');
-          if (token != null && token.isNotEmpty) {
+          final token = await _session.getToken();
+          if (token.isNotEmpty) {
             options.headers['Authorization'] = 'Bearer $token';
           }
           handler.next(options);
@@ -50,6 +51,7 @@ class ApiClient {
   late final Dio _dio;
   SharedPreferences? _prefs;
   final _connection = ConnectionConfigService();
+  final _session = SessionService();
 
   Dio get dio => _dio;
 

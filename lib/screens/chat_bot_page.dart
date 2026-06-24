@@ -25,6 +25,8 @@ class _ChatBotPageState extends State<ChatBotPage> {
   ];
 
   static const _quickQuestions = [
+    'Necesito soporte',
+    'Quiero trabajar con ustedes',
     '¿Cuál es el horario?',
     '¿Hacen delivery?',
     '¿Cómo pago con Yape?',

@@ -41,25 +41,31 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   Future<void> _initializeGoogle() async {
+    if (!_google.isSupported) {
+      if (mounted) setState(() => _googleReady = true);
+      return;
+    }
+
     try {
       await _google.initialize();
       if (_google.usesExternalWebFlow) {
-        if (mounted) setState(() => _googleReady = true);
+        if (mounted) {
+          setState(() {
+            _googleReady = true;
+          });
+        }
         return;
       }
       _googleSubscription = _google.events.listen(_handleGoogleEvent);
-      if (mounted) setState(() => _googleReady = true);
+      if (mounted) {
+        setState(() {
+          _googleReady = true;
+        });
+      }
     } catch (error) {
       if (!mounted) return;
-      setState(() => _googleReady = true);
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        _show(
-          error.toString().replaceFirst(
-            'Exception: ',
-            'No se pudo preparar Google: ',
-          ),
-        );
+      setState(() {
+        _googleReady = true;
       });
     }
   }

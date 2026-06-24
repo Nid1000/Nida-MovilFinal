@@ -57,6 +57,7 @@ return [
         'api_key' => env('OLLAMA_API_KEY', ''),
         'model' => env('OLLAMA_MODEL', 'llama3.1'),
         'timeout_seconds' => (int) env('OLLAMA_TIMEOUT_SECONDS', 60),
+        'temperature' => (float) env('OLLAMA_TEMPERATURE', 0.2),
     ],
 
     'product_notifications' => [

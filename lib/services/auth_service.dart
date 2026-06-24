@@ -1,12 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
+
 import 'package:dio/dio.dart';
 import 'package:http/http.dart' as http;
+
 import '../models/app_user.dart';
 import 'api_cliente.dart';
 import 'api_endpoints.dart';
-import 'session_service.dart';
 import 'app_config.dart';
+import 'session_service.dart';
 
 class AuthService {
   final Dio _api = ApiClient().dio;
@@ -20,15 +22,14 @@ class AuthService {
       );
 
       if (res.statusCode != 200 && res.statusCode != 201) {
-        throw Exception('No se pudo iniciar sesión.');
+        throw Exception('No se pudo iniciar sesion.');
       }
 
-      final data = _normalize(res.data);
-      final user = AppUser.fromApi(data);
+      final user = AppUser.fromApi(_normalize(res.data));
       await _session.saveUser(user);
       return user;
     } on DioException catch (e) {
-      throw Exception(_errorMessage(e, fallback: 'No se pudo iniciar sesión.'));
+      throw Exception(_errorMessage(e, fallback: 'No se pudo iniciar sesion.'));
     }
   }
 
@@ -39,8 +40,7 @@ class AuthService {
           .timeout(const Duration(seconds: 10));
       if (res.statusCode == 200) return;
     } catch (_) {
-      // Some shared hostings treat browser-like requests differently. Try a
-      // second lightweight request before reporting the API as offline.
+      // Some shared hostings treat browser-like requests differently.
     }
 
     try {
@@ -72,7 +72,7 @@ class AuthService {
     String numeroCasa = '',
     required String email,
     required String password,
-    required String emailVerificationToken,
+    String emailVerificationToken = '',
   }) async {
     try {
       final res = await _postFirstAvailable(
@@ -87,13 +87,15 @@ class AuthService {
           'email': email,
           'password': password,
           'registration_channel': 'mobile',
-          'email_verification_token': emailVerificationToken,
+          if (emailVerificationToken.trim().isNotEmpty)
+            'email_verification_token': emailVerificationToken,
         },
       );
 
       if (res.statusCode != 200 && res.statusCode != 201) {
         throw Exception('No se pudo registrar el usuario.');
       }
+
       final user = AppUser.fromApi(_normalize(res.data));
       await _session.saveUser(user);
       return user;
@@ -106,6 +108,68 @@ class AuthService {
 
   Future<void> logout() => _session.clear();
 
+  Future<String> sendRegistrationCode(String email) async {
+    try {
+      final res = await _api.post(
+        ApiEndpoints.sendRegistrationCode,
+        data: {'email': email},
+      );
+      final data = _normalize(res.data);
+      return (data['message'] ?? 'Te enviamos un codigo a tu correo.')
+          .toString();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
+        throw Exception(
+          'La verificacion por correo con Resend aun no esta publicada en la API movil.',
+        );
+      }
+      if (e.response?.statusCode == 500) {
+        throw Exception(
+          'El servidor fallo al enviar el codigo. Falta implementar o corregir Resend en api.saborcentral.com.',
+        );
+      }
+      throw Exception(
+        _errorMessage(e, fallback: 'No se pudo enviar el codigo por correo.'),
+      );
+    }
+  }
+
+  Future<String> verifyRegistrationCode({
+    required String email,
+    required String code,
+  }) async {
+    try {
+      final res = await _api.post(
+        ApiEndpoints.verifyRegistrationCode,
+        data: {
+          'email': email,
+          'code': code,
+          'verification_code': code,
+        },
+      );
+      final data = _normalize(res.data);
+      return (data['verification_token'] ??
+              data['email_verification_token'] ??
+              data['token'] ??
+              'verified')
+          .toString();
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404 || e.response?.statusCode == 405) {
+        throw Exception(
+          'La verificacion por correo con Resend aun no esta publicada en la API movil.',
+        );
+      }
+      if (e.response?.statusCode == 500) {
+        throw Exception(
+          'El servidor fallo al validar el codigo. Falta implementar o corregir Resend en api.saborcentral.com.',
+        );
+      }
+      throw Exception(
+        _errorMessage(e, fallback: 'No se pudo verificar el codigo.'),
+      );
+    }
+  }
+
   Future<AppUser> loginWithGoogle(String idToken) async {
     try {
       final res = await _api.post(
@@ -117,88 +181,8 @@ class AuthService {
       return user;
     } on DioException catch (e) {
       throw Exception(
-        _errorMessage(e, fallback: 'No se pudo iniciar sesión con Google.'),
+        _errorMessage(e, fallback: 'No se pudo iniciar sesion con Google.'),
       );
-    }
-  }
-
-  Future<String> sendRegistrationCode(String email) async {
-    try {
-      final res = await _api.post(
-        ApiEndpoints.sendRegistrationCode,
-        data: {'email': email},
-      );
-      final data = _normalize(res.data);
-      final challenge = (data['challenge'] ?? '').toString();
-      if (challenge.isEmpty) {
-        throw Exception('El servidor no devolvió el código de verificación.');
-      }
-      return challenge;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        throw Exception(
-          'La verificación por correo aún no está publicada en api.saborcentral.com.',
-        );
-      }
-      throw Exception(
-        _errorMessage(e, fallback: 'No se pudo enviar el código.'),
-      );
-    }
-  }
-
-  Future<String> verifyRegistrationCode({
-    required String email,
-    required String code,
-    required String challenge,
-  }) async {
-    try {
-      final res = await _api.post(
-        ApiEndpoints.verifyRegistrationCode,
-        data: {'email': email, 'code': code, 'challenge': challenge},
-      );
-      final data = _normalize(res.data);
-      final token = (data['verification_token'] ?? '').toString();
-      if (token.isEmpty) {
-        throw Exception('El servidor no confirmó la verificación del correo.');
-      }
-      return token;
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        throw Exception(
-          'La verificación por correo aún no está publicada en api.saborcentral.com.',
-        );
-      }
-      throw Exception(
-        _errorMessage(e, fallback: 'No se pudo verificar el código.'),
-      );
-    }
-  }
-
-  Future<Map<String, dynamic>> verifyGoogleRegistration(String idToken) async {
-    try {
-      final res = await _postFirstAvailable(
-        ApiEndpoints.verifyGoogleRegistrationCandidates,
-        data: {'id_token': idToken},
-      );
-      final data = _normalize(res.data);
-      if (data.containsKey('profile') && data.containsKey('verification_token')) {
-        return data;
-      }
-
-      final user = _normalize(data['user']);
-      final email = (user['email'] ?? data['email'] ?? '').toString();
-      return {
-        'statusCode': data['statusCode'] ?? 200,
-        'message': data['message'] ?? 'Correo validado con Google',
-        'profile': {
-          'email': email,
-          'nombre': (user['nombre'] ?? '').toString(),
-          'apellido': (user['apellido'] ?? '').toString(),
-        },
-        'verification_token': data['verification_token'] ?? data['token'] ?? '',
-      };
-    } on DioException catch (e) {
-      throw Exception(_errorMessage(e, fallback: 'No se pudo validar Google.'));
     }
   }
 
@@ -211,37 +195,13 @@ class AuthService {
       final data = _normalize(res.data);
       return {
         'message': (data['message'] ?? 'Revisa tu correo.').toString(),
-        'challenge': (data['challenge'] ?? '').toString(),
       };
     } on DioException catch (e) {
       throw Exception(
         _errorMessage(
           e,
-          fallback: 'No se pudo enviar el correo de recuperación.',
+          fallback: 'No se pudo enviar el correo de recuperacion.',
         ),
-      );
-    }
-  }
-
-  Future<String> verifyPasswordResetCode({
-    required String email,
-    required String code,
-    required String challenge,
-  }) async {
-    try {
-      final res = await _api.post(
-        ApiEndpoints.verifyPasswordResetCode,
-        data: {'email': email, 'code': code, 'challenge': challenge},
-      );
-      final data = _normalize(res.data);
-      final token = (data['reset_token'] ?? '').toString();
-      if (token.isEmpty) {
-        throw Exception('El servidor no confirmó el código de recuperación.');
-      }
-      return token;
-    } on DioException catch (e) {
-      throw Exception(
-        _errorMessage(e, fallback: 'No se pudo verificar el código.'),
       );
     }
   }
@@ -261,8 +221,24 @@ class AuthService {
       );
     } on DioException catch (e) {
       throw Exception(
-        _errorMessage(e, fallback: 'No se pudo actualizar la contraseña.'),
+        _errorMessage(e, fallback: 'No se pudo actualizar la contrasena.'),
       );
+    }
+  }
+
+  Future<List<String>> fetchDistrictsHuancayo() async {
+    try {
+      final res = await _api.get(ApiEndpoints.districtsHuancayo);
+      final data = _normalize(res.data);
+      final raw = data['distritos'];
+      if (raw is! List) return const [];
+      return raw
+          .whereType<Map>()
+          .map((item) => (item['nombre'] ?? item['name'] ?? '').toString())
+          .where((name) => name.trim().isNotEmpty)
+          .toList();
+    } catch (_) {
+      return const [];
     }
   }
 
@@ -318,7 +294,7 @@ class AuthService {
       );
     } on DioException catch (e) {
       throw Exception(
-        _errorMessage(e, fallback: 'No se pudo cambiar la contraseña.'),
+        _errorMessage(e, fallback: 'No se pudo cambiar la contrasena.'),
       );
     }
   }
@@ -412,7 +388,7 @@ class AuthService {
     if (lastError != null) {
       throw lastError;
     }
-    throw Exception('No se encontró una ruta compatible para conectar la app.');
+    throw Exception('No se encontro una ruta compatible para conectar la app.');
   }
 
   String _errorMessage(DioException error, {required String fallback}) {
@@ -444,7 +420,6 @@ class AuthService {
       case DioExceptionType.connectionTimeout:
       case DioExceptionType.sendTimeout:
       case DioExceptionType.receiveTimeout:
-        return _serverUnavailableMessage;
       case DioExceptionType.connectionError:
         return _serverUnavailableMessage;
       default:
@@ -454,5 +429,5 @@ class AuthService {
 
   String get _serverUnavailableMessage =>
       'No pudimos conectar con ${AppConfig.apiHostLabel}. '
-      'El servidor API no está aceptando conexiones en este momento.';
+      'El servidor API no esta aceptando conexiones en este momento.';
 }

@@ -1,9 +1,9 @@
 import 'package:dio/dio.dart';
 import '../models/digi_model.dart';
-import '../utils/dio_cliente.dart';
+import 'api_cliente.dart';
 
 class DigiService {
-  final Dio _dio = DioClient.dio;
+  final Dio _dio = ApiClient().dio;
   static int page = 0;
 
   Future<List<DigiModel>> getDigimons() async {

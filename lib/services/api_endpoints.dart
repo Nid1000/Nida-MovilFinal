@@ -9,15 +9,14 @@ class ApiEndpoints {
   static const register = '/auth/register';
   static const sendRegistrationCode = '/auth/register/email/send-code';
   static const verifyRegistrationCode = '/auth/register/email/verify-code';
-  static const verifyGoogleRegistration = '/auth/register/google/verify';
   static const googleLogin = '/auth/google';
   static const verifySession = '/auth/verify';
   static const forgotPassword = '/auth/password/forgot';
-  static const verifyPasswordResetCode = '/auth/password/verify-code';
   static const resetPassword = '/auth/password/reset';
   static const me = '/usuarios/perfil';
   static const profileStats = '/usuarios/estadisticas';
   static const changePassword = '/usuarios/cambiar-password';
+  static const districtsHuancayo = '/usuarios/distritos-huancayo';
   static const products = '/productos';
   static const categories = '/categorias';
   static const contact = '/contacto';
@@ -35,25 +34,11 @@ class ApiEndpoints {
   static String orderTracking(String id) => '/pedidos/$id';
   static String orderEvents(String id) => '/pedidos/$id';
 
-  static const loginCandidates = ['/auth/login', '/login'];
-  static const registerCandidates = ['/auth/register', '/register'];
-  static const verifyGoogleRegistrationCandidates = [
-    '/auth/register/google/verify',
-    '/auth/google',
-  ];
-  static const ordersCandidates = [
-    '/pedidos/mis-pedidos',
-    '/pedidos',
-    '/orders',
-  ];
-  static List<String> orderByIdCandidates(String id) => [
-    '/pedidos/$id',
-    '/orders/$id',
-  ];
+  static const loginCandidates = ['/auth/login'];
+  static const registerCandidates = ['/auth/register'];
+  static const ordersCandidates = ['/pedidos/mis-pedidos', '/pedidos'];
+  static List<String> orderByIdCandidates(String id) => ['/pedidos/$id'];
   static List<String> orderTrackingCandidates(String id) => [
-    '/pedidos/$id/tracking',
-    '/orders/$id/tracking',
     '/pedidos/$id',
-    '/orders/$id',
   ];
 }

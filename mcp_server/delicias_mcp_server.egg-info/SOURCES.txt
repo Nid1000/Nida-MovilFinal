@@ -1,0 +1,8 @@
+README.md
+pyproject.toml
+server.py
+delicias_mcp_server.egg-info/PKG-INFO
+delicias_mcp_server.egg-info/SOURCES.txt
+delicias_mcp_server.egg-info/dependency_links.txt
+delicias_mcp_server.egg-info/requires.txt
+delicias_mcp_server.egg-info/top_level.txt

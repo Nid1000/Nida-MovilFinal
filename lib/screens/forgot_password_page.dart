@@ -12,49 +12,29 @@ class ForgotPasswordPage extends StatefulWidget {
 
 class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   final _email = TextEditingController();
-  final _code = TextEditingController();
-  final _password = TextEditingController();
-  final _confirmation = TextEditingController();
   final _auth = AuthService();
-
   bool _loading = false;
-  bool _codeSent = false;
-  bool _codeVerified = false;
-  bool _obscurePassword = true;
-  String _challenge = '';
-  String _resetToken = '';
+  bool _sent = false;
 
   @override
   void dispose() {
     _email.dispose();
-    _code.dispose();
-    _password.dispose();
-    _confirmation.dispose();
     super.dispose();
-  }
-
-  void _show(String message) {
-    if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   bool _validEmail(String value) {
     return RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value);
   }
 
-  bool _validPassword(String value) {
-    return value.length >= 6 &&
-        RegExp(r'[a-z]').hasMatch(value) &&
-        RegExp(r'[A-Z]').hasMatch(value) &&
-        RegExp(r'\d').hasMatch(value);
+  void _show(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<void> _sendCode() async {
+  Future<void> _sendResetLink() async {
     final email = _email.text.trim().toLowerCase();
     if (!_validEmail(email)) {
-      _show('Ingresa un correo válido.');
+      _show('Ingresa un correo valido.');
       return;
     }
 
@@ -62,67 +42,8 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
     try {
       final result = await _auth.requestPasswordReset(email);
       if (!mounted) return;
-      final challenge = result['challenge'] ?? '';
-      setState(() {
-        _challenge = challenge;
-        _codeSent = challenge.isNotEmpty;
-        _codeVerified = false;
-        _resetToken = '';
-      });
+      setState(() => _sent = true);
       _show(result['message'] ?? 'Revisa tu correo.');
-    } catch (error) {
-      _show(error.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _verifyCode() async {
-    if (_challenge.isEmpty) {
-      _show('Primero solicita el código.');
-      return;
-    }
-    if (!RegExp(r'^\d{6}$').hasMatch(_code.text.trim())) {
-      _show('Ingresa el código de 6 dígitos.');
-      return;
-    }
-
-    setState(() => _loading = true);
-    try {
-      final token = await _auth.verifyPasswordResetCode(
-        email: _email.text.trim().toLowerCase(),
-        code: _code.text.trim(),
-        challenge: _challenge,
-      );
-      if (!mounted) return;
-      setState(() {
-        _resetToken = token;
-        _codeVerified = token.isNotEmpty;
-      });
-      _show('Código verificado. Crea tu nueva contraseña.');
-    } catch (error) {
-      _show(error.toString().replaceFirst('Exception: ', ''));
-    } finally {
-      if (mounted) setState(() => _loading = false);
-    }
-  }
-
-  Future<void> _resetPassword() async {
-    if (!_validPassword(_password.text)) {
-      _show('Usa 6 caracteres, una mayúscula, una minúscula y un número.');
-      return;
-    }
-    if (_password.text != _confirmation.text) {
-      _show('Las contraseñas no coinciden.');
-      return;
-    }
-
-    setState(() => _loading = true);
-    try {
-      await _auth.resetPassword(token: _resetToken, password: _password.text);
-      if (!mounted) return;
-      _show('Contraseña actualizada correctamente.');
-      Navigator.pop(context);
     } catch (error) {
       _show(error.toString().replaceFirst('Exception: ', ''));
     } finally {
@@ -134,7 +55,7 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.bg,
-      appBar: AppBar(title: const Text('Recuperar contraseña')),
+      appBar: AppBar(title: const Text('Recuperar contrasena')),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(20),
@@ -164,83 +85,42 @@ class _ForgotPasswordPageState extends State<ForgotPasswordPage> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    'Te enviaremos un código de 6 dígitos para validar tu identidad.',
+                    'Te enviaremos un enlace para crear una nueva contrasena. El enlace abre la web segura de Delicias.',
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 22),
                   TextField(
                     controller: _email,
-                    enabled: !_codeVerified,
+                    enabled: !_loading,
                     keyboardType: TextInputType.emailAddress,
                     decoration: const InputDecoration(
-                      labelText: 'Correo electrónico',
+                      labelText: 'Correo electronico',
                       prefixIcon: Icon(Icons.email_outlined),
                     ),
+                    onSubmitted: (_) {
+                      if (!_loading) _sendResetLink();
+                    },
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 14),
                   ElevatedButton.icon(
-                    onPressed: _loading || _codeVerified ? null : _sendCode,
-                    icon: const Icon(Icons.mark_email_read_outlined),
-                    label: Text(
-                      _loading && !_codeSent
-                          ? 'Enviando...'
-                          : _codeSent
-                          ? 'Reenviar código'
-                          : 'Enviar código',
-                    ),
+                    onPressed: _loading ? null : _sendResetLink,
+                    icon: _loading
+                        ? const SizedBox(
+                            width: 18,
+                            height: 18,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : const Icon(Icons.mark_email_read_outlined),
+                    label: Text(_loading ? 'Enviando...' : 'Enviar enlace'),
                   ),
-                  if (_codeSent && !_codeVerified) ...[
-                    const SizedBox(height: 18),
-                    TextField(
-                      controller: _code,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      decoration: const InputDecoration(
-                        labelText: 'Código de 6 dígitos',
-                        prefixIcon: Icon(Icons.pin_outlined),
-                        counterText: '',
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    ElevatedButton(
-                      onPressed: _loading ? null : _verifyCode,
-                      child: Text(_loading ? 'Verificando...' : 'Verificar'),
-                    ),
-                  ],
-                  if (_codeVerified) ...[
-                    const SizedBox(height: 18),
-                    TextField(
-                      controller: _password,
-                      obscureText: _obscurePassword,
-                      decoration: InputDecoration(
-                        labelText: 'Nueva contraseña',
-                        prefixIcon: const Icon(Icons.password_outlined),
-                        suffixIcon: IconButton(
-                          onPressed: () => setState(
-                            () => _obscurePassword = !_obscurePassword,
-                          ),
-                          icon: Icon(
-                            _obscurePassword
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _confirmation,
-                      obscureText: _obscurePassword,
-                      decoration: const InputDecoration(
-                        labelText: 'Confirmar contraseña',
-                        prefixIcon: Icon(Icons.verified_user_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    ElevatedButton(
-                      onPressed: _loading ? null : _resetPassword,
-                      child: Text(
-                        _loading ? 'Actualizando...' : 'Guardar contraseña',
+                  if (_sent) ...[
+                    const SizedBox(height: 16),
+                    const Text(
+                      'Si el correo pertenece a una cuenta activa, recibiras un enlace de recuperacion. Revisa tambien spam o promociones.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: AppColors.success,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],

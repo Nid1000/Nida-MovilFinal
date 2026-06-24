@@ -1,25 +1,23 @@
 import 'package:flutter/material.dart';
+
+import '../models/informacion_ayuda.dart';
 import '../theme/app_colors.dart';
 import '../widgets/delicias_appbar.dart';
 import '../widgets/delicias_card.dart';
-import '../models/informacion_ayuda.dart';
 
 class InformacionAyudaPage extends StatefulWidget {
   const InformacionAyudaPage({super.key});
 
   @override
-  _InformacionAyudaPageState createState() => _InformacionAyudaPageState();
+  State<InformacionAyudaPage> createState() => _InformacionAyudaPageState();
 }
 
 class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
   final List<InformacionAyuda> items = [
     InformacionAyuda(
-      titulo: 'Cómo comprar en nuestra panadería',
+      titulo: 'Como comprar en nuestra panaderia',
       detalles: [
-        {
-          'Paso 1':
-              'Explora panes, postres y productos destacados en la sección Tienda.',
-        },
+        {'Paso 1': 'Explora panes, postres y productos destacados en Tienda.'},
         {
           'Paso 2':
               'Abre cada producto para ver ingredientes, precio y disponibilidad.',
@@ -30,33 +28,30 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
         },
         {
           'Paso 4':
-              'Completa tus datos de entrega y selecciona la dirección del pedido.',
+              'Completa tus datos de entrega y selecciona la direccion del pedido.',
         },
         {
           'Paso 5':
-              'Elige tu método de pago y confirma para generar tu comprobante.',
+              'Elige tu metodo de pago y confirma para generar tu comprobante.',
         },
       ],
     ),
     InformacionAyuda(
-      titulo: 'Horario de atención',
+      titulo: 'Horario de atencion',
       detalles: [
-        {
-          'Lunes a viernes':
-              '9:00 AM - 6:00 PM (atención en tienda y pedidos).',
-        },
-        {'Sábado': '8:00 AM - 2:00 PM (horario reducido).'},
+        {'Lunes a viernes': '9:00 AM - 6:00 PM.'},
+        {'Sabado': '8:00 AM - 2:00 PM.'},
         {'Domingo': 'Cerrado.'},
-        {'Feriados': 'Puede variar según campaña o temporada.'},
+        {'Feriados': 'Puede variar segun campana o temporada.'},
       ],
     ),
     InformacionAyuda(
       titulo: 'Formas de pago',
       detalles: [
-        {'Visa': 'Pago seguro con tarjetas Visa débito o crédito.'},
-        {'Mastercard': 'Disponible para compras en línea y en tienda.'},
-        {'Efectivo': 'Pago contra entrega (según cobertura del delivery).'},
-        {'Yape/Plin': 'Solicita el número al confirmar tu pedido.'},
+        {'Visa': 'Pago seguro con tarjetas Visa debito o credito.'},
+        {'Mastercard': 'Disponible para compras en linea y en tienda.'},
+        {'Efectivo': 'Pago contra entrega segun cobertura del delivery.'},
+        {'Yape/Plin': 'Solicita el numero al confirmar tu pedido.'},
       ],
     ),
     InformacionAyuda(
@@ -68,26 +63,29 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
         },
         {
           'Pedido incompleto':
-              'Te ayudamos con reposición o nota de crédito según el caso.',
+              'Te ayudamos con reposicion o nota de credito segun el caso.',
         },
         {
           'Error en pedido':
-              'Si aún no fue preparado, podemos corregirlo antes del despacho.',
+              'Si aun no fue preparado, podemos corregirlo antes del despacho.',
         },
         {
           'Canales de apoyo':
-              'Contáctanos por teléfono o correo para seguimiento rápido.',
+              'Contactanos por telefono o WhatsApp para seguimiento rapido.',
         },
       ],
     ),
     InformacionAyuda(
-      titulo: 'Ubicación y contacto',
+      titulo: 'Ubicacion y contacto',
       detalles: [
-        {'Dirección': 'Jr. Parra del Riego, Huancayo, Junín.'},
-        {'Teléfono': '+51 234 567 890'},
-        {'WhatsApp': '+51 987 654 321'},
+        {'Direccion': 'Jr. Parra del Riego 2 do piso'},
+        {'Administrador': '974268690'},
+        {'WhatsApp': '974268690'},
         {'Correo': 'delicias@empresa.com'},
-        {'Referencia': 'A pocas cuadras de la Plaza Constitución.'},
+        {
+          'Referencia':
+              'Consulta referencias directamente con el administrador.',
+        },
       ],
     ),
   ];
@@ -108,7 +106,7 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
               style: const TextStyle(
                 fontSize: 30,
                 fontWeight: FontWeight.w900,
-                letterSpacing: 0.1,
+                letterSpacing: 0,
                 color: AppColors.text,
               ),
             ),
@@ -126,7 +124,7 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
-            children: selectedItem.detalles.map((e) {
+            children: selectedItem.detalles.map((item) {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 10),
                 child: Container(
@@ -141,7 +139,7 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        e.keys.first,
+                        item.keys.first,
                         style: const TextStyle(
                           fontWeight: FontWeight.w900,
                           color: AppColors.text,
@@ -149,7 +147,7 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        e.values.first,
+                        item.values.first,
                         style: const TextStyle(
                           height: 1.35,
                           color: AppColors.muted,
@@ -165,9 +163,7 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
         ),
         actions: [
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-            },
+            onPressed: () => Navigator.pop(context),
             child: const Text(
               'Cerrar',
               style: TextStyle(
@@ -184,12 +180,12 @@ class _InformacionAyudaPageState extends State<InformacionAyudaPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: const DeliciasAppBar(title: 'Información / Ayuda'),
+      appBar: const DeliciasAppBar(title: 'Informacion / Ayuda'),
       body: SafeArea(
         child: ListView.separated(
           padding: const EdgeInsets.all(18),
           itemBuilder: (_, i) => _buildCard(items[i].titulo),
-          separatorBuilder: (_, __) => const SizedBox(height: 14),
+          separatorBuilder: (_, _) => const SizedBox(height: 14),
           itemCount: items.length,
         ),
       ),

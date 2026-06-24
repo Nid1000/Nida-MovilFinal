@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../services/cart_service.dart';
+import '../services/checkout_rules.dart';
 import '../services/dni_service.dart';
 import '../services/orders_service.dart';
 import '../services/session_service.dart';
@@ -29,6 +30,7 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
   bool _loading = false;
   bool _initialized = false;
   bool _consultandoDocumento = false;
+  bool _documentoValidado = false;
   String? _documentoInfo;
   String? _documentoError;
 
@@ -64,32 +66,27 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
   }
 
   DateTime? _parseFechaEntrega() {
-    final value = _fechaEntrega.text.trim();
-    if (value.isEmpty) return null;
-    final slashMatch = RegExp(r'^(\d{2})\/(\d{2})\/(\d{4})$').firstMatch(value);
-    if (slashMatch != null) {
-      final day = int.tryParse(slashMatch.group(1)!);
-      final month = int.tryParse(slashMatch.group(2)!);
-      final year = int.tryParse(slashMatch.group(3)!);
-      if (day != null && month != null && year != null) {
-        return DateTime(year, month, day);
-      }
-    }
-    return DateTime.tryParse(value);
+    return CheckoutRules.parseDeliveryDate(_fechaEntrega.text);
   }
 
   String _formatFechaEntrega(DateTime date) {
-    final month = date.month.toString().padLeft(2, '0');
-    final day = date.day.toString().padLeft(2, '0');
-    return '$day/$month/${date.year}';
+    return CheckoutRules.formatDeliveryDate(date);
   }
 
   String? _backendFechaEntrega() {
-    final parsed = _parseFechaEntrega();
-    if (parsed == null) return null;
-    final month = parsed.month.toString().padLeft(2, '0');
-    final day = parsed.day.toString().padLeft(2, '0');
-    return '${parsed.year}-$month-$day';
+    return CheckoutRules.backendDeliveryDate(_fechaEntrega.text);
+  }
+
+  bool _isValidRuc(String value) {
+    return CheckoutRules.isValidRuc(value);
+  }
+
+  void _resetDocumentoValidation() {
+    setState(() {
+      _documentoValidado = false;
+      _documentoInfo = null;
+      _documentoError = null;
+    });
   }
 
   void _msg(String m) {
@@ -120,6 +117,7 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
       _consultandoDocumento = true;
       _documentoError = null;
       _documentoInfo = null;
+      _documentoValidado = false;
     });
 
     if (_tipoDocumento == 'DNI') {
@@ -129,10 +127,12 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
         _consultandoDocumento = false;
         if (result == null) {
           _documentoError = 'No se pudo validar el DNI en este momento';
+          _documentoValidado = false;
         } else {
           _documentoInfo = result.nombreCompleto.isEmpty
               ? 'DNI validado correctamente'
               : result.nombreCompleto;
+          _documentoValidado = true;
         }
       });
       return;
@@ -144,10 +144,12 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
       _consultandoDocumento = false;
       if (result == null) {
         _documentoError = 'No se pudo validar el RUC en este momento';
+        _documentoValidado = false;
       } else {
         _documentoInfo = result.razonSocial.isEmpty
             ? 'RUC validado correctamente'
             : result.nombreCompleto;
+        _documentoValidado = true;
       }
     });
   }
@@ -195,8 +197,19 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
 
     if (_direccion.text.trim().isEmpty ||
         _distrito.text.trim().isEmpty ||
+        _numeroCasa.text.trim().isEmpty ||
         _telefono.text.trim().isEmpty) {
       _msg('Completa dirección, distrito y teléfono');
+      return;
+    }
+
+    if (_backendFechaEntrega() == null) {
+      _msg('Selecciona una fecha de entrega.');
+      return;
+    }
+
+    if (!CheckoutRules.isValidPeruPhone(_telefono.text)) {
+      _msg('El telefono debe tener 9 digitos y empezar con 9.');
       return;
     }
 
@@ -207,6 +220,21 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
 
     if (_tipoDocumento == 'RUC' && _numeroDocumento.text.trim().length != 11) {
       _msg('El RUC debe tener 11 digitos');
+      return;
+    }
+
+    if (_comprobanteTipo == 'factura' && _tipoDocumento != 'RUC') {
+      _msg('Para emitir factura, selecciona RUC.');
+      return;
+    }
+
+    if (_tipoDocumento == 'RUC' && !_isValidRuc(_numeroDocumento.text.trim())) {
+      _msg('El RUC no tiene un digito verificador valido.');
+      return;
+    }
+
+    if (!_documentoValidado) {
+      _msg('Consulta y valida el documento antes de confirmar el pedido.');
       return;
     }
 
@@ -319,7 +347,7 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
               left: _fieldBlock(
                 label: 'Distrito',
                 child: DropdownButtonFormField<String>(
-                  value: _districtOptions.contains(_distrito.text.trim())
+                  initialValue: _districtOptions.contains(_distrito.text.trim())
                       ? _distrito.text.trim()
                       : null,
                   items: _districtOptions
@@ -396,12 +424,18 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
             const SizedBox(height: 12),
             Text('Método de pago', style: textTheme.bodyMedium),
             const SizedBox(height: 4),
-            Row(
-              children: [
-                Expanded(child: _compactRadio('Contra entrega')),
-                Expanded(child: _compactRadio('Tarjeta')),
-                Expanded(child: _compactRadio('Yape')),
-              ],
+            RadioGroup<String>(
+              groupValue: _metodo,
+              onChanged: (selected) {
+                if (selected != null) setState(() => _metodo = selected);
+              },
+              child: Row(
+                children: [
+                  Expanded(child: _compactRadio('Contra entrega')),
+                  Expanded(child: _compactRadio('Tarjeta')),
+                  Expanded(child: _compactRadio('Yape')),
+                ],
+              ),
             ),
             if (_metodo == 'Tarjeta') ...[
               const SizedBox(height: 10),
@@ -458,7 +492,7 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
                     left: _fieldBlock(
                       label: 'Tipo',
                       child: DropdownButtonFormField<String>(
-                        value: _comprobanteTipo,
+                        initialValue: _comprobanteTipo,
                         items: const [
                           DropdownMenuItem(
                             value: 'boleta',
@@ -477,13 +511,14 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
                     right: _fieldBlock(
                       label: 'Documento',
                       child: DropdownButtonFormField<String>(
-                        value: _tipoDocumento,
+                        initialValue: _tipoDocumento,
                         items: const [
                           DropdownMenuItem(value: 'DNI', child: Text('DNI')),
                           DropdownMenuItem(value: 'RUC', child: Text('RUC')),
                         ],
                         onChanged: (value) => setState(() {
                           _tipoDocumento = value!;
+                          _documentoValidado = false;
                           _documentoInfo = null;
                           _documentoError = null;
                         }),
@@ -501,6 +536,7 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
                           child: TextField(
                             controller: _numeroDocumento,
                             keyboardType: TextInputType.number,
+                            onChanged: (_) => _resetDocumentoValidation(),
                             decoration: _checkoutInputDecoration(
                               hintText: _tipoDocumento == 'DNI'
                                   ? '12345678'
@@ -606,8 +642,6 @@ class _ProcesoPagoPageState extends State<ProcesoPagoPage> {
         children: [
           Radio<String>(
             value: value,
-            groupValue: _metodo,
-            onChanged: (selected) => setState(() => _metodo = selected!),
             materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             visualDensity: VisualDensity.compact,
           ),

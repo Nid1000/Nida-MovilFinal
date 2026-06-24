@@ -61,6 +61,24 @@ class _ContactPageState extends State<ContactPage> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
+            const Card(
+              child: Padding(
+                padding: EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Administrador',
+                      style: TextStyle(fontWeight: FontWeight.w800),
+                    ),
+                    SizedBox(height: 6),
+                    Text('Telefono / WhatsApp: 974268690'),
+                    Text('Direccion: Jr. Parra del Riego 2 do piso'),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             _field(_nombre, 'Nombre'),
             _field(_email, 'Correo', email: true),
             _field(_asunto, 'Asunto'),

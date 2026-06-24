@@ -1,0 +1,8 @@
+Metadata-Version: 2.4
+Name: delicias-mcp-server
+Version: 0.1.0
+Summary: FastMCP server for read-only access to the Delicias database.
+Requires-Python: >=3.10
+Requires-Dist: fastmcp>=2.0.0
+Requires-Dist: PyMySQL>=1.1.1
+Requires-Dist: python-dotenv>=1.0.1
